@@ -2,7 +2,9 @@
 CREATE TABLE neurons (
     id INTEGER PRIMARY KEY,
     activation REAL,
-    bias REAL
+    bias REAL,
+    x_pos REAL,
+    y_pos REAL
 );
 
 CREATE TABLE connections (

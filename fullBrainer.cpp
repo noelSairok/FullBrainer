@@ -13,6 +13,9 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cmath>
+#include <thread>
+#include <chrono>
 #include <sqlite3.h>
 
 // ░▒▓███████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓█▓▒░▒▓███████▓▒░         
@@ -23,7 +26,7 @@
 // ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓██▓▒░ 
 // ░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░        
 
-// ---- BRAIN STRUCTIONS ----
+// ---- BRAIN STRUCTURES ----
 
 struct Connection {
     int to;
@@ -33,6 +36,7 @@ struct Connection {
 struct Neuron {
     double activation = 0.0;
     double bias = 0.0;
+    float x, y; // for visualization only
     std::vector<Connection> out;
 };
 
@@ -56,6 +60,26 @@ std::vector<Neuron> load_brain(sqlite3* db) {
         Neuron n;
         n.activation = sqlite3_column_double(stmt, 1);
         n.bias = sqlite3_column_double(stmt, 2);
+
+        // Initialize x,y from DB if present, otherwise set randomly 0-500
+        if (sqlite3_column_type(stmt, 3) == SQLITE_NULL)
+        {
+            n.x = static_cast<float>(rand() % 501);
+        }
+        else
+        {
+            n.x = static_cast<float>(sqlite3_column_double(stmt, 3));
+        }
+
+        if (sqlite3_column_type(stmt, 4) == SQLITE_NULL)
+        {
+            n.y = static_cast<float>(rand() % 501);
+        }
+        else
+        {
+            n.y = static_cast<float>(sqlite3_column_double(stmt, 4));
+        }
+        
         loaded_brain.push_back(n);
     }
     sqlite3_finalize(stmt);
@@ -65,7 +89,7 @@ std::vector<Neuron> load_brain(sqlite3* db) {
         int from = sqlite3_column_int(stmt, 0);
         int to   = sqlite3_column_int(stmt, 1);
         double w = sqlite3_column_double(stmt, 2);
-        loaded_brain[from].out.push_back({to, w});
+        loaded_brain[static_cast<size_t>(from)].out.push_back({to, w});
     }
     sqlite3_finalize(stmt);
 
@@ -99,7 +123,124 @@ void save_brain(sqlite3* db, const std::vector<Neuron>& brain) {
     }
 };
 
+// ---- KILL NEURON FUNCTION ----
+
+void kill_neuron(Brain& brain, int index) {
+    brain.neurons.erase(brain.neurons.begin() + index);
+
+    // fix connections
+    for (auto &n : brain.neurons)
+    {
+        for (auto &c : n.out)
+        {
+            if (c.to > index)
+                c.to--;
+        }
+    }
+}
+
+// ---- NEURON DUPLICATION FUNCTION ----
+
+void duplicate_neuron(Brain& brain, int index) {
+    Neuron copy = brain.neurons[index];
+
+    // mutate slightly
+    copy.bias += ((rand() % 100) / 5000.0 - 0.01);
+
+    brain.neurons.push_back(copy);
+}
+
+// ---- EVOLUTION FUNCTION ----
+
+void mutate(Brain& brain)
+{
+    for (auto &n : brain.neurons)
+    {
+        if (rand() % 100 < 5)
+        {
+            n.bias += ((rand() % 100) / 1000.0 - 0.05);
+        }
+
+        for (auto &c : n.out)
+        {
+            if (rand() % 100 < 5)
+            {
+                c.weight += ((rand() % 100) / 1000.0 - 0.05);
+            }
+        }
+    }
+
+    if (rand() % 100 < 2)
+    {
+        duplicate_neuron(brain, rand() % brain.neurons.size());
+    }
+
+    if (brain.neurons.size() > 5 && rand() % 100 < 2)
+    {
+        kill_neuron(brain, rand() % brain.neurons.size());
+    }
+}
+
+// ---- INPUT SETTING FUNCTION ----
+
+void set_inputs(Brain &brain, std::vector<double> inputs) {
+    for (int i = 0; i < inputs.size(); i++)
+    {
+        brain.neurons[i].activation = inputs[i];
+    }
+}
+
+// ---- OUTPUT READING FUNCTION ----
+
+std::vector<double> read_outputs(Brain &brain, int outputs) {
+    std::vector<double> out;
+    int n = brain.neurons.size();
+
+    for (int i = n - outputs; i < n; i++)
+    {
+        out.push_back(brain.neurons[i].activation);
+    }
+
+    return out;
+}
+
+// ---- BRAIN THINKING FUNCTION ----
+
+void step_brain(Brain& brain) {
+    int neuron_count = brain.neurons.size();
+    std::vector<double> new_activations(neuron_count);
+    
+    // Update all neurons
+    for (int i = 0; i < neuron_count; i++) {
+        double sum = brain.neurons[i].bias;
+        
+        // Sum inputs from all neurons
+        for (int j = 0; j < neuron_count; j++) {
+            for (auto& conn : brain.neurons[j].out) {
+                if (conn.to == i) {
+                    sum += brain.neurons[j].activation * conn.weight;
+                }
+            }
+        }
+        
+        // Sigmoid activation function
+        new_activations[i] = 1.0 / (1.0 + exp(-sum));
+    }
+    
+    // Update all neuron activations
+    for (int i = 0; i < neuron_count; i++) {
+        brain.neurons[i].activation = new_activations[i];
+    }
+}
+
+// ---- RANDOM SENSOR FUNCTION (NOT FOR REAL WORK BUT FOR DEBUGGING ONLY) ----
+
+double random_sensor() {
+    return (rand() % 100) / 50.0;
+}
+
 // ---- RANDOM BRAIN CREATION FUNCTION ----
+
 Brain create_random_brain(int inputs, int outputs, int min_neurons, int max_neurons) {
     Brain brain;
     int neuron_count = min_neurons + rand() % (max_neurons - min_neurons + 1);
@@ -123,6 +264,20 @@ Brain create_random_brain(int inputs, int outputs, int min_neurons, int max_neur
     return brain;
 }
 
+// ---- ASCII WISUALIZATION FUNCTION (JUST FOR FUN) ----
+
+void ascii_visualize(Brain &brain)
+{
+    for (int i = 0; i < brain.neurons.size(); i++)
+    {
+        int bars = (int)(brain.neurons[i].activation * 20);
+        std::cout << i << " ";
+        for (int j = 0; j < bars; j++)
+            std::cout << "#";
+        std::cout << "\n";
+    }
+}
+
 // ###################################################################################
 //                         <===== MAIN FUNCTION =====>
 // ###################################################################################
@@ -139,11 +294,50 @@ int main() {
         brain = create_random_brain(3, 3, 7, 21);
     }
 
+    std::thread input_thread([&brain, &db]() {
+        while (true) {
+            char input;
+            std::cin >> input;
+            if (input == 'Q' || input == 'q') {
+                save_brain(db, brain.neurons);
+                std::cout << "Brain saved. Exiting..." << std::endl;
+                exit(0);
+            }
+        }
+    });
+    input_thread.detach();
+
+
     // THE MAIN LOOP, EVERY THOUGHT HAPPENS HERE.
 
-//    while (true) {
-//
-//    }
+    while (true) {
+        std::vector<double> inputs = {
+            random_sensor(),
+            random_sensor(),
+            random_sensor()
+        };
+
+        set_inputs(brain, inputs);
+
+        // std::cout << "\n" << "Inputs: ";
+        // for (double i : inputs) std::cout << i << " ";
+        // std::cout << std::endl;
+
+        step_brain(brain);
+
+        auto outputs = read_outputs(brain, 3);
+
+        // std::cout << "\n" << "Outputs: ";
+        // for (double o : outputs) std::cout << o << " ";
+        // std::cout << std::endl;
+
+        ascii_visualize(brain);
+
+        mutate(brain);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    }
     save_brain(db, brain.neurons);
 
     auto loaded = load_brain(db);
