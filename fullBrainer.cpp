@@ -18,37 +18,107 @@
 // }
 
 
+// #include <iostream>
+// #include <cmath>
+// #include <vector>
+// #include <thread>
+// #include <chrono>
+// #include <random>
+// #include <sqlite3.h>
+// #include <string>
+
+
+// // Here structires are defined.
+// struct Connection {
+//     int to;
+//     double weight;
+// };
+
+// struct Neuron {
+//     double activation;
+//     double bias;
+//     std::vector<Connection> out;
+// };
+
+
+// std::vector<Neuron> load_brain(sqlite3* db) {
+//     std::vector<Neuron> brain;
+
+//     // Load neurons
+//     sqlite3_stmt* stmt;
+//     sqlite3_prepare_v2(db, "SELECT * FROM neurons;", -1, &stmt, nullptr);
+
+//     while (sqlite3_step(stmt) == SQLITE_ROW) {
+//         Neuron n;
+//         n.activation = sqlite3_column_double(stmt, 1);
+//         n.bias = sqlite3_column_double(stmt, 2);
+//         brain.push_back(n);
+//     }
+//     sqlite3_finalize(stmt);
+
+//     // Load connections
+//     sqlite3_prepare_v2(db, "SELECT * FROM connections;", -1, &stmt, nullptr);
+//     while (sqlite3_step(stmt) == SQLITE_ROW) {
+//         int from = sqlite3_column_int(stmt, 0);
+//         int to   = sqlite3_column_int(stmt, 1);
+//         double w = sqlite3_column_double(stmt, 2);
+//         brain[from].out.push_back({to, w});
+//     }
+//     sqlite3_finalize(stmt);
+
+//     return brain;
+// }
+
+// std::vector<Neuron> brain;
+
+// void save_brain(sqlite3* db, const std::vector<Neuron>& brain) {
+//     char* err = nullptr;
+
+//     sqlite3_exec(db, "DELETE FROM neurons;", nullptr, nullptr, &err);
+//     sqlite3_exec(db, "DELETE FROM connections;", nullptr, nullptr, &err);
+
+//     for (int i = 0; i < brain.size(); i++) {
+//         std::string q =
+//             "INSERT INTO neurons VALUES (" +
+//             std::to_string(i) + "," +
+//             std::to_string(brain[i].activation) + "," +
+//             std::to_string(brain[i].bias) + ");";
+//         sqlite3_exec(db, q.c_str(), nullptr, nullptr, &err);
+
+//         for (auto& c : brain[i].out) {
+//             std::string q2 =
+//                 "INSERT INTO connections VALUES (" +
+//                 std::to_string(i) + "," +
+//                 std::to_string(c.to) + "," +
+//                 std::to_string(c.weight) + ");";
+//             sqlite3_exec(db, q2.c_str(), nullptr, nullptr, &err);
+//         }
+//     }
+// };
+
+// int main() {
+//     sqlite3* db;
+//     sqlite3_open("brain.db", &db);
+
+//     // create some brain
+//     brain.resize(3);
+//     brain[0].out.push_back({1, 0.5});
+//     brain[1].out.push_back({2, -0.3});
+
+//     save_brain(db, brain);
+
+//     auto loaded = load_brain(db);
+
+//     sqlite3_close(db);
+// };
+
 #include <iostream>
-#include <cmath>
 #include <vector>
-#include <thread>
-#include <chrono>
-#include <random>
+#include <string>
+#include <sqlite3.h>
 
-std::vector<Neuron> load_brain(const std::string& file) {
-    std::ifstream in(file, std::ios::binary);
 
-    int n;
-    in.read((char*)&n, sizeof(int));
-
-    std::vector<Neuron> brain(n);
-
-    for (int i = 0; i < n; i++) {
-        in.read((char*)&brain[i].activation, sizeof(double));
-        in.read((char*)&brain[i].bias, sizeof(double));
-
-        int m;
-        in.read((char*)&m, sizeof(int));
-
-        brain[i].out.resize(m);
-        for (int j = 0; j < m; j++) {
-            in.read((char*)&brain[i].out[j].to, sizeof(int));
-            in.read((char*)&brain[i].out[j].weight, sizeof(double));
-        }
-    }
-
-    return brain;
-}
+// ---- STRUCTS FIRST ----
 
 struct Connection {
     int to;
@@ -56,30 +126,89 @@ struct Connection {
 };
 
 struct Neuron {
-    double activation;
-    double bias;
+    double activation = 0.0;
+    double bias = 0.0;
     std::vector<Connection> out;
 };
 
-void save_brain(const std::vector<Neuron>& brain, const std::string& file) {
-    std::ofstream out(file, std::ios::binary);
+// ---- GLOBAL BRAIN ----
 
-    int n = brain.size();
-    out.write((char*)&n, sizeof(int));
+std::vector<Neuron> brain;
 
-    for (const auto& neuron : brain) {
-        out.write((char*)&neuron.activation, sizeof(double));
-        out.write((char*)&neuron.bias, sizeof(double));
+// ---- LOAD ----
 
-        int m = neuron.out.size();
-        out.write((char*)&m, sizeof(int));
+std::vector<Neuron> load_brain(sqlite3* db) {
+    std::vector<Neuron> loaded_brain;
 
-        for (const auto& conn : neuron.out) {
-            out.write((char*)&conn.to, sizeof(int));
-            out.write((char*)&conn.weight, sizeof(double));
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db, "SELECT * FROM neurons;", -1, &stmt, nullptr);
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        Neuron n;
+        n.activation = sqlite3_column_double(stmt, 1);
+        n.bias = sqlite3_column_double(stmt, 2);
+        loaded_brain.push_back(n);
+    }
+    sqlite3_finalize(stmt);
+
+    sqlite3_prepare_v2(db, "SELECT * FROM connections;", -1, &stmt, nullptr);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        int from = sqlite3_column_int(stmt, 0);
+        int to   = sqlite3_column_int(stmt, 1);
+        double w = sqlite3_column_double(stmt, 2);
+        loaded_brain[from].out.push_back({to, w});
+    }
+    sqlite3_finalize(stmt);
+
+    return loaded_brain;
+};
+
+// ---- SAVE ----
+
+void save_brain(sqlite3* db, const std::vector<Neuron>& brain) {
+    char* err = nullptr;
+
+    sqlite3_exec(db, "DELETE FROM neurons;", nullptr, nullptr, &err);
+    sqlite3_exec(db, "DELETE FROM connections;", nullptr, nullptr, &err);
+
+    for (int i = 0; i < brain.size(); i++) {
+        std::string q =
+            "INSERT INTO neurons VALUES (" +
+            std::to_string(i) + "," +
+            std::to_string(brain[i].activation) + "," +
+            std::to_string(brain[i].bias) + ");";
+        sqlite3_exec(db, q.c_str(), nullptr, nullptr, &err);
+
+        for (auto& c : brain[i].out) {
+            std::string q2 =
+                "INSERT INTO connections VALUES (" +
+                std::to_string(i) + "," +
+                std::to_string(c.to) + "," +
+                std::to_string(c.weight) + ");";
+            sqlite3_exec(db, q2.c_str(), nullptr, nullptr, &err);
         }
     }
-}
+};
+
+// ---- MAIN ----
+
+int main() {
+    sqlite3* db;
+    sqlite3_open("brain.db", &db);
+
+    brain.resize(3);
+    brain[0].out.push_back({1, 0.5});
+    brain[1].out.push_back({2, -0.3});
+
+    save_brain(db, brain);
+
+    auto loaded = load_brain(db);
+
+    std::cout << "Loaded neurons: " << loaded.size() << std::endl;
+
+    sqlite3_close(db);
+};
+
 
 
 // // Those are the sizes of our network
