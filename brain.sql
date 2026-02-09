@@ -3,8 +3,10 @@ CREATE TABLE neurons (
     id INTEGER PRIMARY KEY,
     activation REAL,
     bias REAL,
-    x_pos REAL,
-    y_pos REAL
+    leak REAL,
+    avg REAL,
+    posx FLOAT,
+    posy FLOAT
 );
 
 CREATE TABLE connections (

@@ -1,3 +1,4 @@
+
 //  /$$$$$$$                                               /$$           /$$ /$$ /$$$$$$$$        /$$ /$$         /$$$$$$$                     /$$                               /$$ /$$
 // | $$__  $$                                             | $$          | $$| $$| $$_____/       | $$| $$        | $$__  $$                   |__/                              | $$| $$
 // | $$  \ $$ /$$$$$$   /$$$$$$  /$$  /$$$$$$   /$$$$$$$ /$$$$$$        | $$| $$| $$    /$$   /$$| $$| $$        | $$  \ $$  /$$$$$$  /$$$$$$  /$$ /$$$$$$$   /$$$$$$   /$$$$$$ | $$| $$
@@ -17,6 +18,7 @@
 #include <thread>
 #include <chrono>
 #include <sqlite3.h>
+#include "visualizer.h"
 
 // ░▒▓███████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓█▓▒░▒▓███████▓▒░         
 // ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓██▓▒░ 
@@ -36,6 +38,8 @@ struct Connection {
 struct Neuron {
     double activation = 0.0;
     double bias = 0.0;
+    double leak = 0.0;
+    double avg = 0.0;
     float x, y; // for visualization only
     std::vector<Connection> out;
 };
@@ -61,25 +65,44 @@ std::vector<Neuron> load_brain(sqlite3* db) {
         n.activation = sqlite3_column_double(stmt, 1);
         n.bias = sqlite3_column_double(stmt, 2);
 
-        // Initialize x,y from DB if present, otherwise set randomly 0-500
+        // load leak and avg (columns 3 and 4 in the schema). default to 0.0 if NULL.
         if (sqlite3_column_type(stmt, 3) == SQLITE_NULL)
         {
             n.x = static_cast<float>(rand() % 501);
         }
         else
         {
-            n.x = static_cast<float>(sqlite3_column_double(stmt, 3));
+            n.leak = sqlite3_column_double(stmt, 3);
         }
 
         if (sqlite3_column_type(stmt, 4) == SQLITE_NULL)
+        {
+            n.avg = 0.0;
+        }
+        else
+        {
+            n.avg = sqlite3_column_double(stmt, 4);
+        }
+
+        // Initialize x,y from DB if present (columns 5 and 6), otherwise set randomly 0-500
+        if (sqlite3_column_type(stmt, 5) == SQLITE_NULL)
+        {
+            n.x = static_cast<float>(rand() % 501);
+        }
+        else
+        {
+            n.x = static_cast<float>(sqlite3_column_double(stmt, 5));
+        }
+
+        if (sqlite3_column_type(stmt, 6) == SQLITE_NULL)
         {
             n.y = static_cast<float>(rand() % 501);
         }
         else
         {
-            n.y = static_cast<float>(sqlite3_column_double(stmt, 4));
+            n.y = static_cast<float>(sqlite3_column_double(stmt, 6));
         }
-        
+
         loaded_brain.push_back(n);
     }
     sqlite3_finalize(stmt);
@@ -109,7 +132,11 @@ void save_brain(sqlite3* db, const std::vector<Neuron>& brain) {
             "INSERT INTO neurons VALUES (" +
             std::to_string(i) + "," +
             std::to_string(brain[i].activation) + "," +
-            std::to_string(brain[i].bias) + ");";
+            std::to_string(brain[i].bias) + "," +
+            std::to_string(brain[i].leak) + "," +
+            std::to_string(brain[i].avg) + "," +
+            std::to_string(brain[i].x) + "," +
+            std::to_string(brain[i].y) + ");";
         sqlite3_exec(db, q.c_str(), nullptr, nullptr, &err);
 
         for (auto& c : brain[i].out) {
@@ -289,10 +316,17 @@ int main() {
     Brain brain;                    // Creation of a namespace for our brain, which will contain all the neurons and their connections. This is what we will be saving and loading from the database.
     brain.neurons = load_brain(db);
 
-    if (brain.neurons.empty()) {  // If the database is empty, we need to create a new brain. In the future, the function for creation a blank random brain will be present, so you will be able to reset existing brain to get a new one with the same amount of inputs and outputs.
+    if (brain.neurons.empty()) {  // If the database is empty, we need to create a new brain.
         std::cout << "No brain found. Creating a new one." << std::endl;
-        brain = create_random_brain(3, 3, 7, 21);
+        brain = create_random_brain(5, 5, 20, 40);
     }
+
+    // Create visualizer
+    Visualizer visualizer(800, 800);
+
+    // Configuration: 3 inputs, 3 outputs
+    const int num_inputs = 3;
+    const int num_outputs = 3;
 
     std::thread input_thread([&brain, &db]() {
         while (true) {
@@ -310,7 +344,7 @@ int main() {
 
     // THE MAIN LOOP, EVERY THOUGHT HAPPENS HERE.
 
-    while (true) {
+    while (visualizer.isOpen()) {
         std::vector<double> inputs = {
             random_sensor(),
             random_sensor(),
@@ -325,17 +359,18 @@ int main() {
 
         step_brain(brain);
 
-        auto outputs = read_outputs(brain, 3);
+        auto outputs = read_outputs(brain, num_outputs);
 
         // std::cout << "\n" << "Outputs: ";
         // for (double o : outputs) std::cout << o << " ";
         // std::cout << std::endl;
 
-        ascii_visualize(brain);
+        // Draw the network
+        visualizer.draw(brain, num_inputs, num_outputs);
 
         mutate(brain);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     }
     save_brain(db, brain.neurons);
