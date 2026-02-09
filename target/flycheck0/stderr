@@ -1,0 +1,9 @@
+    Updating crates.io index
+error: failed to select a version for `sfml`.
+    ... required by package `fullbrainer-rust v0.1.0 (/home/noel/FullBrainer/fullbrainer-rust)`
+versions that meet the requirements `^0.10.0` are: 0.10.1
+
+package `fullbrainer-rust` depends on `sfml` with feature `graphics` but `sfml` does not have that feature.
+
+
+failed to select a version for `sfml` which could resolve this conflict

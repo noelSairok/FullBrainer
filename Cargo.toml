@@ -1,0 +1,9 @@
+[package]
+name = "fullbrainer-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rusqlite = "0.26.0"
+rand = "0.8"
+# Remove sfml for now (crate feature mismatch). Re-add later if you want GUI support.

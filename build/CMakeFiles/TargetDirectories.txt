@@ -1,0 +1,2 @@
+/home/noel/FullBrainer/build/CMakeFiles/edit_cache.dir
+/home/noel/FullBrainer/build/CMakeFiles/rebuild_cache.dir
