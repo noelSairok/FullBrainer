@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rusqlite = "0.26.0"
-rand = "0.8"
+rusqlite = "0.38.0"
+rand = "0.10.0"
 # Remove sfml for now (crate feature mismatch). Re-add later if you want GUI support.

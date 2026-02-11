@@ -1,4 +1,4 @@
-// filepath: /fullbrainer-rust/fullbrainer-rust/src/brain.rs
+// filepath: /src/brain.rs
 
 use rusqlite::{params, Connection, Result};
 use rand::Rng;

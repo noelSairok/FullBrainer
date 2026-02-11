@@ -1,9 +1,100 @@
-    Updating crates.io index
-error: failed to select a version for `sfml`.
-    ... required by package `fullbrainer-rust v0.1.0 (/home/noel/FullBrainer/fullbrainer-rust)`
-versions that meet the requirements `^0.10.0` are: 0.10.1
+   0.066994664s  INFO prepare_target{force=false package_id=fullbrainer-rust v0.1.0 (/home/noel/FullBrainer) target="fullbrainer_rust"}: cargo::core::compiler::fingerprint: fingerprint error for fullbrainer-rust v0.1.0 (/home/noel/FullBrainer)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("fullbrainer_rust", ["lib"], "/home/noel/FullBrainer/src/lib.rs", Edition2021) }
+   0.067020846s  INFO prepare_target{force=false package_id=fullbrainer-rust v0.1.0 (/home/noel/FullBrainer) target="fullbrainer_rust"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/noel/FullBrainer/target/debug/.fingerprint/fullbrainer-rust-2f60d0af1191122b/lib-fullbrainer_rust`
 
-package `fullbrainer-rust` depends on `sfml` with feature `graphics` but `sfml` does not have that feature.
+Caused by:
+    No such file or directory (os error 2)
 
+Stack backtrace:
+   0: <unknown>
+   1: <unknown>
+   2: <unknown>
+   3: <unknown>
+   4: <unknown>
+   5: <unknown>
+   6: <unknown>
+   7: <unknown>
+   8: <unknown>
+   9: <unknown>
+  10: <unknown>
+  11: <unknown>
+  12: <unknown>
+  13: <unknown>
+  14: <unknown>
+  15: __libc_start_main
+  16: <unknown>
+   0.068548840s  INFO prepare_target{force=false package_id=fullbrainer-rust v0.1.0 (/home/noel/FullBrainer) target="fullbrainer_rust"}: cargo::core::compiler::fingerprint: fingerprint error for fullbrainer-rust v0.1.0 (/home/noel/FullBrainer)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("fullbrainer_rust", ["lib"], "/home/noel/FullBrainer/src/lib.rs", Edition2021) }
+   0.068559019s  INFO prepare_target{force=false package_id=fullbrainer-rust v0.1.0 (/home/noel/FullBrainer) target="fullbrainer_rust"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/noel/FullBrainer/target/debug/.fingerprint/fullbrainer-rust-20a77bc646fab80c/test-lib-fullbrainer_rust`
 
-failed to select a version for `sfml` which could resolve this conflict
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: <unknown>
+   1: <unknown>
+   2: <unknown>
+   3: <unknown>
+   4: <unknown>
+   5: <unknown>
+   6: <unknown>
+   7: <unknown>
+   8: <unknown>
+   9: <unknown>
+  10: <unknown>
+  11: <unknown>
+  12: <unknown>
+  13: <unknown>
+  14: <unknown>
+  15: __libc_start_main
+  16: <unknown>
+   0.068751908s  INFO prepare_target{force=false package_id=fullbrainer-rust v0.1.0 (/home/noel/FullBrainer) target="fullbrainer-rust"}: cargo::core::compiler::fingerprint: fingerprint error for fullbrainer-rust v0.1.0 (/home/noel/FullBrainer)/Check { test: false }/TargetInner { name: "fullbrainer-rust", doc: true, ..: with_path("/home/noel/FullBrainer/src/main.rs", Edition2021) }
+   0.068760920s  INFO prepare_target{force=false package_id=fullbrainer-rust v0.1.0 (/home/noel/FullBrainer) target="fullbrainer-rust"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/noel/FullBrainer/target/debug/.fingerprint/fullbrainer-rust-986a635e9e75ebc4/bin-fullbrainer-rust`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: <unknown>
+   1: <unknown>
+   2: <unknown>
+   3: <unknown>
+   4: <unknown>
+   5: <unknown>
+   6: <unknown>
+   7: <unknown>
+   8: <unknown>
+   9: <unknown>
+  10: <unknown>
+  11: <unknown>
+  12: <unknown>
+  13: <unknown>
+  14: <unknown>
+  15: __libc_start_main
+  16: <unknown>
+   0.068934359s  INFO prepare_target{force=false package_id=fullbrainer-rust v0.1.0 (/home/noel/FullBrainer) target="fullbrainer-rust"}: cargo::core::compiler::fingerprint: fingerprint error for fullbrainer-rust v0.1.0 (/home/noel/FullBrainer)/Check { test: true }/TargetInner { name: "fullbrainer-rust", doc: true, ..: with_path("/home/noel/FullBrainer/src/main.rs", Edition2021) }
+   0.068942407s  INFO prepare_target{force=false package_id=fullbrainer-rust v0.1.0 (/home/noel/FullBrainer) target="fullbrainer-rust"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/noel/FullBrainer/target/debug/.fingerprint/fullbrainer-rust-41a499b1239a3d67/test-bin-fullbrainer-rust`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: <unknown>
+   1: <unknown>
+   2: <unknown>
+   3: <unknown>
+   4: <unknown>
+   5: <unknown>
+   6: <unknown>
+   7: <unknown>
+   8: <unknown>
+   9: <unknown>
+  10: <unknown>
+  11: <unknown>
+  12: <unknown>
+  13: <unknown>
+  14: <unknown>
+  15: __libc_start_main
+  16: <unknown>
+    Checking fullbrainer-rust v0.1.0 (/home/noel/FullBrainer)
+error: could not compile `fullbrainer-rust` (lib) due to 5 previous errors; 1 warning emitted
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `fullbrainer-rust` (lib test) due to 5 previous errors; 1 warning emitted
